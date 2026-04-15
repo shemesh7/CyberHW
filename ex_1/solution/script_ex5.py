@@ -6,7 +6,7 @@ true_indicator = "In wonderland right now"
 
 # I got that from the site and then F12
 my_cookies = {
-    'PHPSESSID': '414170264f5da76958870da216138b7c'
+    'PHPSESSID': '14a6773ab6444749b4c46e19a6bdd25c'
 }
 
 # options of charachters: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-
