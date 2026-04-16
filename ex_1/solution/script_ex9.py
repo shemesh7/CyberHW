@@ -107,10 +107,6 @@ def read_file(path: str) -> bytes:
 
 
 def main():
-    print("=" * 60)
-    print("Part 9 – Attempting to read /etc/shadow via LOAD_FILE SQLi")
-    print("=" * 60)
-
     if not check_connection():
         print("Cannot reach the server. Aborting.")
         return
